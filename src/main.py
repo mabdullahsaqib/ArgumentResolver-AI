@@ -1,5 +1,13 @@
 import google.generativeai as genai
+import speech_recognition as sr
+import pyttsx3
 from config import config
+
+# Initialize the speech recognition engine
+recognizer = sr.Recognizer()
+
+# Initialize the TTS engine
+tts_engine = pyttsx3.init()
 
 # Configure the generative AI model with the API key from environment variables
 genai.configure(api_key=config.GEMINI_API_KEY)
@@ -24,7 +32,29 @@ chat = model.start_chat(history=[])
 
 def call_gemini_api(prompt):
     response = chat.send_message(prompt)
-    return response['text']
+    return response.text
+
+def speak(text):
+    tts_engine.say(text)
+    tts_engine.runAndWait()
+    print(text)  # Also print the output for debugging
+
+def listen():
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source)
+        print("Listening...")
+        audio = recognizer.listen(source)
+
+        try:
+            text = recognizer.recognize_google(audio)
+            print(f"You said: {text}")
+            return text
+        except sr.UnknownValueError:
+            print("Sorry, I did not catch that.")
+            return listen()
+        except sr.RequestError:
+            print("Could not request results from Google Speech Recognition service.")
+            return ""
 
 def start_conversation():
     session = {
@@ -76,7 +106,8 @@ def handle_response(session, message):
         # Use AI to generate subtopics
         prompt = f"Based on the following input: '{message}', generate a list of subtopics for discussion."
         response = call_gemini_api(prompt)
-        session['subtopics'] = response.split(', ')
+        print(response)
+        session['subtopics'] = response.split('\n')
         session['step'] = 6
         response += "\nNow we're going to discuss the first subtopic. Each person alternates speaking for 30 seconds, although you can end your turn early if you want. Let's begin!"
 
@@ -113,22 +144,11 @@ def handle_response(session, message):
 
 # Example Usage
 session, response = start_conversation()
-print(response)
+speak(response)
 
-session, response = handle_response(session, "Alice and Bob")
-print(response)
+while session['step'] < 9:
+    user_input = listen()
+    session, response = handle_response(session, user_input)
+    speak(response)
 
-session, response = handle_response(session, "yes")
-print(response)
-
-session, response = handle_response(session, "done")
-print(response)
-
-session, response = handle_response(session, "done")
-print(response)
-
-session, response = handle_response(session, "We want to resolve our conflict")
-print(response)
-
-session, response = handle_response(session, "done")
-print(response)
+print("\n",session)
