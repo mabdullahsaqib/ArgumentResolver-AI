@@ -6,6 +6,6 @@ load_dotenv()
 
 class Config:
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-    JARVIS_MODEL_CONFIG = os.getenv('JARVIS_MODEL_CONFIG')
+    ARG_MODEL_CONFIG = os.getenv('ARG_MODEL_CONFIG')
 
 config = Config()
