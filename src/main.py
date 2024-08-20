@@ -106,7 +106,7 @@ def handle_response(session, message):
         # Use AI to generate subtopics
         prompt = f"Based on the following input: '{message}', generate a list of subtopics for discussion."
         response = call_gemini_api(prompt)
-        print(response)
+        print("Let's discuss the following subtopics and figure out a solution to the argument :\n")
         session['subtopics'] = response.split('\n')
         session['step'] = 6
         response += "\nNow we're going to discuss the first subtopic. Each person alternates speaking for 30 seconds, although you can end your turn early if you want. Let's begin!"
@@ -144,11 +144,14 @@ def handle_response(session, message):
 
 # Example Usage
 session, response = start_conversation()
-speak(response)
+# speak(response)
+print(response)
 
 while session['step'] < 9:
-    user_input = listen()
+    # user_input = listen()
+    user_input = input("> ")
     session, response = handle_response(session, user_input)
-    speak(response)
+    # speak(response)
+    print(response)
 
 print("\n",session)
