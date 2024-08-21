@@ -1,6 +1,8 @@
 import google.generativeai as genai
 import speech_recognition as sr
 import pyttsx3
+from requests import Session
+
 from config import config
 
 # Initialize the speech recognition engine
@@ -8,6 +10,8 @@ recognizer = sr.Recognizer()
 
 # Initialize the TTS engine
 tts_engine = pyttsx3.init()
+voices = tts_engine.getProperty('voices')
+tts_engine.setProperty('voice', voices[1].id)
 
 # Configure the generative AI model with the API key from environment variables
 genai.configure(api_key=config.GEMINI_API_KEY)
@@ -107,30 +111,28 @@ def handle_response(session, message):
         prompt = f"Based on the following input: '{message}', generate a list of subtopics for discussion."
         response = call_gemini_api(prompt)
         print("Let's discuss the following subtopics and figure out a solution to the argument :\n")
-        session['subtopics'] = response.split('\n')
+        session['subtopics'] = response.split('\\')
         session['step'] = 6
-        response += "\nNow we're going to discuss the first subtopic. Each person alternates speaking for 30 seconds, although you can end your turn early if you want. Let's begin!"
+        response += "\nNow we're going to discuss the subtopics. Each person alternates speaking for 30 seconds, although you can end your turn early if you want. At the end of the discussion say done to let me know. Let's begin!"
 
     elif step == 6:
         if 'done' in message.lower():
-            session['subtopics'].pop(0)
             if session['subtopics']:
                 response = f"Let's move on to the next subtopic: {session['subtopics'][0]}. Same process."
             else:
                 session['step'] = 7
                 response = "Great! You've discussed all the subtopics. Now, let's talk about solutions."
+            if session['subtopics']:
+                session['subtopics'].pop(0)
 
     elif step == 7:
-        session['step'] = 8
         response = ("Please share your solutions. I can also provide recommendations if you'd like. "
                     "Let me know when you're ready to wrap up.")
-
-    elif step == 8:
         # Use AI to provide recommendations
         prompt = "Based on the following solutions: '{message}', provide recommendations for improvement and conflict resolution."
         response = call_gemini_api(prompt)
         session['step'] = 9
-        response += "\nThanks for coming on here. I'm glad we were able to work things out. If there's anything else, I'm here to help."
+        response += "\nHave we reached a resolution? Please let me know if anyone is still unsatisfied."
 
     elif step == 9:
         if 'no resolution' in message.lower() or 'angry' in message.lower():
@@ -138,13 +140,13 @@ def handle_response(session, message):
                         "I'm here to talk if you need me. If all else fails, I'll document this session "
                         "and forward it to a counselor.")
         else:
-            response = "Thanks again! Have a great day."
+            response = "Thanks for coming on here. I'm glad we were able to work things out. If there's anything else, I'm here to help."
 
     return session, response
 
 # Example Usage
 session, response = start_conversation()
-# speak(response)
+#speak(response)
 print(response)
 
 while session['step'] < 9:
